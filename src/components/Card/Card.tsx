@@ -18,7 +18,7 @@ type CardProps = {
   // index at which the card is located in its column, used to calculate vertical position
   cardIndex: number;
   onMoveCard: (fromColumnIndex: number, toColumnIndex: number) => void;
-  isTopCard: boolean;
+  isDraggable: boolean;
 };
 
 const getCardOffset = (columnIndex: number, cardIndex: number) => {
@@ -33,7 +33,7 @@ export function Card({
   columnIndex,
   cardIndex,
   onMoveCard,
-  isTopCard,
+  isDraggable,
 }: CardProps) {
   const styles = useStyles();
   const cardRef = React.useRef<HTMLDivElement>(null);
@@ -46,14 +46,14 @@ export function Card({
       emptyImage.src = EMPTY_IMAGE;
       ev.dataTransfer?.setDragImage(emptyImage, 0, 0);
 
-      if (!isTopCard) {
+      if (!isDraggable) {
         ev.preventDefault();
         return;
       }
       setIsDragging(true);
       cardRef.current?.style.setProperty("z-index", "1000");
     },
-    [isTopCard],
+    [isDraggable],
   );
 
   const onDrag = React.useCallback(
@@ -88,11 +88,11 @@ export function Card({
   return (
     <div
       ref={cardRef}
-      draggable={isTopCard}
+      draggable={isDraggable}
       onDragStart={onDragStart}
       onDrag={onDrag}
       onDragEnd={onDragEnd}
-      className={mergeClasses(styles.card, isTopCard && styles.topCard)}
+      className={mergeClasses(styles.card, isDraggable && styles.topCard)}
       style={getCardOffset(columnIndex, cardIndex)}
     >
       <img

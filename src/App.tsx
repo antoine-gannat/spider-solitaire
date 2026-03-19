@@ -4,6 +4,7 @@ import { Card } from "./components/Card/Card";
 import { IState } from "./logic/state";
 import { useStaticStyles, useStyles } from "./App.styles";
 import { Button } from "@fluentui/react-components";
+import { areCardsOrdered } from "./utils/areCardsOrdered";
 
 const game = new Game();
 
@@ -39,7 +40,11 @@ const App: React.FC = () => {
                 card={card}
                 columnIndex={columnIndex}
                 cardIndex={cardIndex}
-                isTopCard={cardIndex === column.length - 1}
+                isDraggable={
+                  cardIndex === column.length - 1 ||
+                  (card.visible === true &&
+                    areCardsOrdered(column.slice(cardIndex)))
+                }
               />
             ))}
           </div>

@@ -1,5 +1,5 @@
-import { RANK_ORDER } from "../components/Constant";
-import { IState, Rank, Suit } from "./state";
+import { RANKS_IN_ORDER } from "../components/Constant";
+import { IState, Suit } from "./state";
 
 type OnUpdateListener = (state: IState) => void;
 
@@ -72,8 +72,8 @@ export class Game {
     const topCard = toColumn[toColumn.length - 1];
     // can only move if card to move is one rank lower than top card
     return (
-      RANK_ORDER.indexOf(cardToMove.rank) ===
-      RANK_ORDER.indexOf(topCard.rank) - 1
+      RANKS_IN_ORDER.indexOf(cardToMove.rank) ===
+      RANKS_IN_ORDER.indexOf(topCard.rank) - 1
     );
   }
 
@@ -127,28 +127,14 @@ export class Game {
   // then shuffle them and return.
   private generateDeck(): IState["deck"] {
     const suits: Suit[] = ["H", "S"];
-    const ranks: Rank[] = [
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-      "7",
-      "8",
-      "9",
-      "10",
-      "J",
-      "Q",
-      "K",
-    ];
+
     const deck: IState["deck"] = [];
 
     // generate
     for (let i = 0; i < 2; i++) {
       for (const suit of suits) {
         for (let i = 0; i < 2; i++) {
-          for (const rank of ranks) {
+          for (const rank of RANKS_IN_ORDER) {
             deck.push({
               name: `${rank}${suit}`,
               suit,
