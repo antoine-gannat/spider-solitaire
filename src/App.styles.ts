@@ -15,5 +15,11 @@ export const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
     height: "100vh",
     width: "100vw",
+    display: "flex",
+    flexDirection: "column",
+  },
+  decks: {},
+  tableau: {
+    position: "relative",
   },
 });

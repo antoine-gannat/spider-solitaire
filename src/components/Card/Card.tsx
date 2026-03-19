@@ -2,6 +2,7 @@ import React from "react";
 import type { ICard } from "../../logic/state";
 import { useStyles } from "./Card.styles";
 import {
+  CARD_HEIGHT,
   CARD_HORIZONTAL_OFFSET,
   CARD_VERTICAL_OFFSET,
   CARD_WIDTH,
@@ -40,15 +41,15 @@ export function Card({
 
   const onDragStart = React.useCallback(
     (ev: React.DragEvent) => {
-      if (!isTopCard) {
-        ev.preventDefault();
-        return;
-      }
       // Hide the drag image by setting a transparent image
       const emptyImage = new Image();
       emptyImage.src = EMPTY_IMAGE;
       ev.dataTransfer?.setDragImage(emptyImage, 0, 0);
 
+      if (!isTopCard) {
+        ev.preventDefault();
+        return;
+      }
       setIsDragging(true);
       cardRef.current?.style.setProperty("z-index", "1000");
     },
@@ -66,7 +67,7 @@ export function Card({
       );
       cardRef.current?.style.setProperty(
         "top",
-        `${ev.clientY - CARD_VERTICAL_OFFSET / 2}px`,
+        `${ev.clientY - CARD_HEIGHT / 2}px`,
       );
     },
     [isDragging],
@@ -95,6 +96,7 @@ export function Card({
       style={getCardOffset(columnIndex, cardIndex)}
     >
       <img
+        className={styles.img}
         src={`./cards/${card.visible ? card.name : "back"}.png`}
         alt={card.visible ? card.name : "card back"}
       />

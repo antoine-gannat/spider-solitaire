@@ -3,6 +3,7 @@ import { Game } from "./logic/game";
 import { Card } from "./components/Card/Card";
 import { IState } from "./logic/state";
 import { useStaticStyles, useStyles } from "./App.styles";
+import { Button } from "@fluentui/react-components";
 
 const game = new Game();
 
@@ -23,20 +24,27 @@ const App: React.FC = () => {
 
   return (
     <div className={styles.app}>
-      {state.tableau.map((column, columnIndex) => (
-        <div key={columnIndex}>
-          {column.map((card, cardIndex) => (
-            <Card
-              key={`${card.name}-${cardIndex}`}
-              onMoveCard={game.moveCard.bind(game)}
-              card={card}
-              columnIndex={columnIndex}
-              cardIndex={cardIndex}
-              isTopCard={cardIndex === column.length - 1}
-            />
-          ))}
-        </div>
-      ))}
+      <div className={styles.decks}>
+        Deck: {state.deck.length} cards remaining
+        <Button>Deal cards</Button>
+        <Button onClick={() => game.undoMove()}>Undo</Button>
+      </div>
+      <div className={styles.tableau}>
+        {state.tableau.map((column, columnIndex) => (
+          <div key={columnIndex}>
+            {column.map((card, cardIndex) => (
+              <Card
+                key={`${card.name}-${cardIndex}`}
+                onMoveCard={game.moveCard.bind(game)}
+                card={card}
+                columnIndex={columnIndex}
+                cardIndex={cardIndex}
+                isTopCard={cardIndex === column.length - 1}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

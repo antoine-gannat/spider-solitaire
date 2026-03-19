@@ -1,10 +1,22 @@
+import { RANK_ORDER } from "../components/Constant";
 import { IState, Rank, Suit } from "./state";
 
 type OnUpdateListener = (state: IState) => void;
 
+type CardMove = {
+  type: "move";
+  fromColumnIndex: number;
+  toColumnIndex: number;
+};
+type CardUncover = {
+  type: "uncover";
+  columnIndex: number;
+};
+
 export class Game {
   state: IState;
   private listener: OnUpdateListener | null = null;
+  private moves: (CardMove | CardUncover)[] = [];
 
   constructor() {
     this.state = {
@@ -34,12 +46,76 @@ export class Game {
     this.update();
   }
 
+  tryToUncoverCard(columnIndex: number) {
+    const column = this.state.tableau[columnIndex];
+    if (column.length === 0) {
+      return;
+    }
+    const topCard = column[column.length - 1];
+    if (!topCard.visible) {
+      topCard.visible = true;
+      this.moves.push({ type: "uncover", columnIndex });
+      this.update();
+    }
+  }
+
+  canMoveCard(fromColumnIndex: number, toColumnIndex: number) {
+    const fromColumn = this.state.tableau[fromColumnIndex];
+    const toColumn = this.state.tableau[toColumnIndex];
+    if (fromColumn.length === 0) {
+      return false;
+    }
+    const cardToMove = fromColumn[fromColumn.length - 1];
+    if (toColumn.length === 0) {
+      return true;
+    }
+    const topCard = toColumn[toColumn.length - 1];
+    // can only move if card to move is one rank lower than top card
+    return (
+      RANK_ORDER.indexOf(cardToMove.rank) ===
+      RANK_ORDER.indexOf(topCard.rank) - 1
+    );
+  }
+
   moveCard(fromColumnIndex: number, toColumnIndex: number) {
+    if (!this.canMoveCard(fromColumnIndex, toColumnIndex)) {
+      console.warn("Invalid move");
+      return;
+    }
     const card = this.state.tableau[fromColumnIndex].pop();
     if (!card) {
       throw new Error("No card to move");
     }
     this.state.tableau[toColumnIndex].push(card);
+    this.moves.push({ type: "move", fromColumnIndex, toColumnIndex });
+
+    this.tryToUncoverCard(fromColumnIndex);
+    this.update();
+  }
+
+  undoMove() {
+    const lastMove = this.moves.pop();
+    if (!lastMove) {
+      console.warn("No moves to undo");
+      return;
+    }
+    if (lastMove.type === "move") {
+      const { fromColumnIndex, toColumnIndex } = lastMove;
+      const card = this.state.tableau[toColumnIndex].pop();
+      if (!card) {
+        throw new Error("No card to undo move");
+      }
+      this.state.tableau[fromColumnIndex].push(card);
+    } else if (lastMove.type === "uncover") {
+      const { columnIndex } = lastMove;
+      const column = this.state.tableau[columnIndex];
+      if (column.length === 0) {
+        throw new Error("No card to cover");
+      }
+      column[column.length - 1].visible = false;
+      // In the case of uncovering a card, we want to undo the move that triggered that uncover as well
+      this.undoMove();
+    }
     this.update();
   }
 

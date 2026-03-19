@@ -12,4 +12,11 @@ export const useStyles = makeStyles({
     cursor: "grab",
     filter: "brightness(1)",
   },
+  dragging: {
+    cursor: "grabbing",
+  },
+  img: {
+    width: "100%",
+    height: "100%",
+  },
 });
