@@ -6,5 +6,10 @@ export const useStyles = makeStyles({
     width: `${CARD_WIDTH}px`,
     height: `${CARD_HEIGHT}px`,
     position: "absolute",
+    filter: "brightness(0.7)",
+  },
+  topCard: {
+    cursor: "grab",
+    filter: "brightness(1)",
   },
 });

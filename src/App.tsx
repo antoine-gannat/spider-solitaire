@@ -27,10 +27,12 @@ const App: React.FC = () => {
         <div key={columnIndex}>
           {column.map((card, cardIndex) => (
             <Card
-              card={card}
               key={`${card.name}-${cardIndex}`}
+              onMoveCard={game.moveCard.bind(game)}
+              card={card}
               columnIndex={columnIndex}
               cardIndex={cardIndex}
+              isTopCard={cardIndex === column.length - 1}
             />
           ))}
         </div>

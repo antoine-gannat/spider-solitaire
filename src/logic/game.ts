@@ -34,7 +34,14 @@ export class Game {
     this.update();
   }
 
-  moveCard() {}
+  moveCard(fromColumnIndex: number, toColumnIndex: number) {
+    const card = this.state.tableau[fromColumnIndex].pop();
+    if (!card) {
+      throw new Error("No card to move");
+    }
+    this.state.tableau[toColumnIndex].push(card);
+    this.update();
+  }
 
   listenForUpdates(listener: OnUpdateListener) {
     this.listener = listener;
@@ -87,6 +94,6 @@ export class Game {
   }
 
   private update() {
-    this.listener?.(this.state);
+    this.listener?.({ ...this.state });
   }
 }
