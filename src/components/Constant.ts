@@ -25,3 +25,5 @@ export const RANKS_IN_ORDER = [
   "Q",
   "K",
 ] as const;
+
+export const DECK_COUNT = 4;

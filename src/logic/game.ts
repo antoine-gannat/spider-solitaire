@@ -1,12 +1,12 @@
-import { RANKS_IN_ORDER } from "../components/Constant";
-import { IState, Suit } from "./state";
+import { DECK_COUNT, RANKS_IN_ORDER } from "../components/Constant";
+import { ICard, IState, Suit } from "./state";
 
 type OnUpdateListener = (state: IState) => void;
 
 type CardMove = {
   type: "move";
+  cardId: string;
   fromColumnIndex: number;
-  toColumnIndex: number;
 };
 type CardUncover = {
   type: "uncover";
@@ -29,18 +29,23 @@ export class Game {
     this.state.deck = this.generateDeck();
 
     // left part of the tableau is 6 columns of 6 cards, right part is 4 columns of 5 cards
-    for (let i = 0; i < 10; i++) {
+    for (let columnIndex = 0; columnIndex < 10; columnIndex++) {
       const column: IState["tableau"][number] = [];
-      for (let j = 0; j < (i < 6 ? 6 : 5); j++) {
+      for (
+        let cardIndex = 0;
+        cardIndex < (columnIndex < 6 ? 6 : 5);
+        cardIndex++
+      ) {
         const card = this.state.deck.pop();
         if (!card) {
           throw new Error("Deck ran out of cards during setup");
         }
+        card.position = { columnIndex, cardIndex };
         column.push(card);
       }
       // set last card in column to visible
       column[column.length - 1].visible = true;
-      this.state.tableau[i] = column;
+      this.state.tableau[columnIndex] = column;
     }
 
     this.update();
@@ -77,17 +82,21 @@ export class Game {
     );
   }
 
-  moveCard(fromColumnIndex: number, toColumnIndex: number) {
-    if (!this.canMoveCard(fromColumnIndex, toColumnIndex)) {
+  moveCard(card: ICard, toColumnIndex: number, isUndo = false) {
+    const fromColumnIndex = card.position.columnIndex;
+    // check if we can do the move.
+    // unless we are undoing, then bypass
+    if (!isUndo && !this.canMoveCard(fromColumnIndex, toColumnIndex)) {
       console.warn("Invalid move");
       return;
     }
-    const card = this.state.tableau[fromColumnIndex].pop();
-    if (!card) {
-      throw new Error("No card to move");
-    }
     this.state.tableau[toColumnIndex].push(card);
-    this.moves.push({ type: "move", fromColumnIndex, toColumnIndex });
+    card.position = {
+      columnIndex: toColumnIndex,
+      cardIndex: this.state.tableau[toColumnIndex].length - 1,
+    };
+    this.state.tableau[fromColumnIndex].pop();
+    this.moves.push({ type: "move", fromColumnIndex, cardId: card.id });
 
     this.tryToUncoverCard(fromColumnIndex);
     this.update();
@@ -100,12 +109,11 @@ export class Game {
       return;
     }
     if (lastMove.type === "move") {
-      const { fromColumnIndex, toColumnIndex } = lastMove;
-      const card = this.state.tableau[toColumnIndex].pop();
+      const card = this.getCard(lastMove.cardId);
       if (!card) {
-        throw new Error("No card to undo move");
+        throw new Error("Card to undo move not found");
       }
-      this.state.tableau[fromColumnIndex].push(card);
+      this.moveCard(card, lastMove.fromColumnIndex, /* isUndo */ true);
     } else if (lastMove.type === "uncover") {
       const { columnIndex } = lastMove;
       const column = this.state.tableau[columnIndex];
@@ -116,7 +124,6 @@ export class Game {
       // In the case of uncovering a card, we want to undo the move that triggered that uncover as well
       this.undoMove();
     }
-    this.update();
   }
 
   listenForUpdates(listener: OnUpdateListener) {
@@ -131,17 +138,17 @@ export class Game {
     const deck: IState["deck"] = [];
 
     // generate
-    for (let i = 0; i < 2; i++) {
+    for (let deckIndex = 0; deckIndex < DECK_COUNT; deckIndex++) {
       for (const suit of suits) {
-        for (let i = 0; i < 2; i++) {
-          for (const rank of RANKS_IN_ORDER) {
-            deck.push({
-              name: `${rank}${suit}`,
-              suit,
-              rank,
-              visible: false,
-            });
-          }
+        for (const rank of RANKS_IN_ORDER) {
+          deck.push({
+            name: `${rank}${suit}`,
+            suit,
+            rank,
+            visible: false,
+            id: `${rank}${suit}-${deckIndex}`,
+            position: { columnIndex: -1, cardIndex: -1 },
+          });
         }
       }
     }
@@ -157,5 +164,15 @@ export class Game {
 
   private update() {
     this.listener?.({ ...this.state });
+  }
+
+  private getCard(cardId: string) {
+    for (const column of this.state.tableau) {
+      for (const card of column) {
+        if (card.id === cardId) {
+          return card;
+        }
+      }
+    }
   }
 }

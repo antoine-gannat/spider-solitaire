@@ -36,7 +36,7 @@ const App: React.FC = () => {
             {column.map((card, cardIndex) => (
               <Card
                 key={`${card.name}-${cardIndex}`}
-                onMoveCard={game.moveCard.bind(game)}
+                moveCard={game.moveCard.bind(game)}
                 card={card}
                 columnIndex={columnIndex}
                 cardIndex={cardIndex}
