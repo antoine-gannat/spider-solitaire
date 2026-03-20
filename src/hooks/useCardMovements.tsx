@@ -8,6 +8,7 @@ import {
 } from "../components/Constant";
 import { getColumnFromXPos } from "../utils/getColumnFromXPos";
 import { hideDraggedElement } from "../utils/hideDraggedElement";
+import { game } from "../logic/game";
 
 const registeredCards: Record<string, React.RefObject<HTMLDivElement>> = {};
 
@@ -18,12 +19,11 @@ export const getCardOffset = (columnIndex: number, cardIndex: number) => {
   };
 };
 
-export function useCardMovements(
-  card: ICard,
-  isDraggable: boolean,
-  moveCard: (card: ICard, toColumnIndex: number) => void,
-) {
+export function useCardMovements(card: ICard, isDraggable: boolean) {
   const cardRef = React.useRef<HTMLDivElement>(null);
+  const draggedStackRef = React.useRef<
+    { card: ICard; ref: React.RefObject<HTMLDivElement> }[]
+  >([]);
   const [isDragging, setIsDragging] = React.useState(false);
 
   React.useEffect(() => {
@@ -40,11 +40,13 @@ export function useCardMovements(
         ev.preventDefault();
         return;
       }
+      draggedStackRef.current = game
+        .getCardStackFromCard(card)
+        .map((c) => ({ card: c, ref: registeredCards[c.id] }));
+
       setIsDragging(true);
-      // increase the z-index of the dragged card so that it appears above other cards while dragging
-      cardRef.current?.style.setProperty("z-index", "100");
     },
-    [isDraggable],
+    [isDraggable, card],
   );
 
   const onDrag = React.useCallback(
@@ -52,34 +54,39 @@ export function useCardMovements(
       if (!isDragging || ev.clientX === 0 || ev.clientY === 0) {
         return;
       }
-      cardRef.current?.style.setProperty(
-        "left",
-        `${ev.clientX - CARD_WIDTH / 2}px`,
-      );
-      cardRef.current?.style.setProperty(
-        "top",
-        `${ev.clientY - CARD_HEIGHT / 2}px`,
-      );
+      draggedStackRef.current.forEach(({ ref }, index) => {
+        const offsetX = CARD_HORIZONTAL_OFFSET;
+        const offsetY = index * CARD_VERTICAL_OFFSET;
+        ref.current?.style.setProperty(
+          "left",
+          `${ev.clientX - CARD_WIDTH / 2 + offsetX}px`,
+        );
+        ref.current?.style.setProperty(
+          "top",
+          `${ev.clientY - CARD_HEIGHT / 2 + offsetY}px`,
+        );
+        // increase the z-index of the dragged card so that it appears above other cards while dragging
+        ref.current?.style.setProperty("z-index", (100 + index).toString());
+      });
     },
+
     [isDragging],
   );
 
-  const onDragEnd = React.useCallback(
-    (ev: React.DragEvent) => {
-      setIsDragging(false);
-      // reset z-index
-      cardRef.current?.style.removeProperty("z-index");
+  const onDragEnd = React.useCallback((ev: React.DragEvent) => {
+    setIsDragging(false);
+
+    draggedStackRef.current.forEach(({ ref, card }) => {
       const offset = getCardOffset(
         card.position.columnIndex,
         card.position.cardIndex,
       );
-      cardRef.current?.style.setProperty("left", `${offset.left}px`);
-      cardRef.current?.style.setProperty("top", `${offset.top}px`);
-      // update the card position in the game state
-      moveCard(card, getColumnFromXPos(ev.clientX));
-    },
-    [card, moveCard],
-  );
+      ref.current?.style.setProperty("left", `${offset.left}px`);
+      ref.current?.style.setProperty("top", `${offset.top}px`);
+      ref.current?.style.removeProperty("z-index");
+      game.moveCard(card, getColumnFromXPos(ev.clientX));
+    });
+  }, []);
 
   return {
     ref: cardRef,

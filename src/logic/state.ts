@@ -22,5 +22,6 @@ export interface ICard {
 
 export interface IState {
   deck: ICard[];
+  completedSets: number;
   tableau: ICard[][];
 }

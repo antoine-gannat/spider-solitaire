@@ -18,8 +18,22 @@ export const useStyles = makeStyles({
     display: "flex",
     flexDirection: "column",
   },
-  decks: {},
+  topBar: {
+    display: "flex",
+    flexDirection: "column",
+    padding: "20px",
+  },
+  deck: {
+    padding: "10px",
+    position: "relative",
+  },
+  deckCard: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+  },
   tableau: {
+    padding: "50px 20px",
     position: "relative",
   },
 });

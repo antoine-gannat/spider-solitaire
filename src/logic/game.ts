@@ -1,4 +1,8 @@
-import { DECK_COUNT, RANKS_IN_ORDER } from "../components/Constant";
+import {
+  COLUMN_COUNT,
+  DECK_COUNT,
+  RANKS_IN_ORDER,
+} from "../components/Constant";
 import { ICard, IState, Suit } from "./state";
 
 type OnUpdateListener = (state: IState) => void;
@@ -13,7 +17,7 @@ type CardUncover = {
   columnIndex: number;
 };
 
-export class Game {
+class Game {
   state: IState;
   private listener: OnUpdateListener | null = null;
   private moves: (CardMove | CardUncover)[] = [];
@@ -22,14 +26,19 @@ export class Game {
     this.state = {
       deck: [],
       tableau: [],
+      completedSets: 0,
     };
+  }
+
+  listenForUpdates(listener: OnUpdateListener) {
+    this.listener = listener;
   }
 
   setup() {
     this.state.deck = this.generateDeck();
 
     // left part of the tableau is 6 columns of 6 cards, right part is 4 columns of 5 cards
-    for (let columnIndex = 0; columnIndex < 10; columnIndex++) {
+    for (let columnIndex = 0; columnIndex < COLUMN_COUNT; columnIndex++) {
       const column: IState["tableau"][number] = [];
       for (
         let cardIndex = 0;
@@ -51,6 +60,8 @@ export class Game {
     this.update();
   }
 
+  // Card movements
+
   tryToUncoverCard(columnIndex: number) {
     const column = this.state.tableau[columnIndex];
     if (column.length === 0) {
@@ -64,21 +75,20 @@ export class Game {
     }
   }
 
-  canMoveCard(fromColumnIndex: number, toColumnIndex: number) {
-    const fromColumn = this.state.tableau[fromColumnIndex];
+  canMoveCard(card: ICard, toColumnIndex: number) {
+    const fromColumn = this.state.tableau[card.position.columnIndex];
     const toColumn = this.state.tableau[toColumnIndex];
     if (fromColumn.length === 0) {
       return false;
     }
-    const cardToMove = fromColumn[fromColumn.length - 1];
     if (toColumn.length === 0) {
       return true;
     }
-    const topCard = toColumn[toColumn.length - 1];
+    const destinationTopCard = toColumn[toColumn.length - 1];
     // can only move if card to move is one rank lower than top card
     return (
-      RANKS_IN_ORDER.indexOf(cardToMove.rank) ===
-      RANKS_IN_ORDER.indexOf(topCard.rank) - 1
+      RANKS_IN_ORDER.indexOf(card.rank) ===
+      RANKS_IN_ORDER.indexOf(destinationTopCard.rank) - 1
     );
   }
 
@@ -86,7 +96,7 @@ export class Game {
     const fromColumnIndex = card.position.columnIndex;
     // check if we can do the move.
     // unless we are undoing, then bypass
-    if (!isUndo && !this.canMoveCard(fromColumnIndex, toColumnIndex)) {
+    if (!isUndo && !this.canMoveCard(card, toColumnIndex)) {
       console.warn("Invalid move");
       return;
     }
@@ -96,12 +106,15 @@ export class Game {
       cardIndex: this.state.tableau[toColumnIndex].length - 1,
     };
     this.state.tableau[fromColumnIndex].pop();
-    this.moves.push({ type: "move", fromColumnIndex, cardId: card.id });
+    // skip recording the move if this move is being made as part of an undo, to avoid infinite loop
+    !isUndo &&
+      this.moves.push({ type: "move", fromColumnIndex, cardId: card.id });
 
     this.tryToUncoverCard(fromColumnIndex);
     this.update();
   }
 
+  // TODO: Fix for stack moves
   undoMove() {
     const lastMove = this.moves.pop();
     if (!lastMove) {
@@ -126,8 +139,11 @@ export class Game {
     }
   }
 
-  listenForUpdates(listener: OnUpdateListener) {
-    this.listener = listener;
+  // Helpers
+
+  getCardStackFromCard(card: ICard) {
+    const column = this.state.tableau[card.position.columnIndex];
+    return column.slice(card.position.cardIndex).filter((c) => c.visible);
   }
 
   // Generate two standard decks of cards (104 cards total) for Spider Solitaire
@@ -176,3 +192,5 @@ export class Game {
     }
   }
 }
+
+export const game = new Game();

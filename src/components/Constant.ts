@@ -27,3 +27,6 @@ export const RANKS_IN_ORDER = [
 ] as const;
 
 export const DECK_COUNT = 4;
+export const SUIT_COUNT = 2;
+
+export const COLUMN_COUNT = 10;

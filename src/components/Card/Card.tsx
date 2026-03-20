@@ -10,22 +10,14 @@ type CardProps = {
   columnIndex: number;
   // index at which the card is located in its column, used to calculate vertical position
   cardIndex: number;
-  moveCard: (card: ICard, toColumnIndex: number) => void;
   isDraggable: boolean;
 };
 
-export function Card({
-  card,
-  columnIndex,
-  cardIndex,
-  moveCard,
-  isDraggable,
-}: CardProps) {
+export function Card({ card, columnIndex, cardIndex, isDraggable }: CardProps) {
   const styles = useStyles();
   const { ref, onDrag, onDragEnd, onDragStart } = useCardMovements(
     card,
     isDraggable,
-    moveCard,
   );
 
   return (
