@@ -5,9 +5,9 @@ import {
   CARD_HORIZONTAL_OFFSET,
   CARD_VERTICAL_OFFSET,
   CARD_WIDTH,
-  EMPTY_IMAGE,
 } from "../components/Constant";
 import { getColumnFromXPos } from "../utils/getColumnFromXPos";
+import { hideDraggedElement } from "../utils/hideDraggedElement";
 
 const registeredCards: Record<string, React.RefObject<HTMLDivElement>> = {};
 
@@ -35,17 +35,14 @@ export function useCardMovements(
 
   const onDragStart = React.useCallback(
     (ev: React.DragEvent) => {
-      // Hide the drag image by setting a transparent image
-      const emptyImage = new Image();
-      emptyImage.src = EMPTY_IMAGE;
-      ev.dataTransfer?.setDragImage(emptyImage, 0, 0);
-
+      hideDraggedElement(ev);
       if (!isDraggable) {
         ev.preventDefault();
         return;
       }
       setIsDragging(true);
-      cardRef.current?.style.setProperty("z-index", "1000");
+      // increase the z-index of the dragged card so that it appears above other cards while dragging
+      cardRef.current?.style.setProperty("z-index", "100");
     },
     [isDraggable],
   );
@@ -70,7 +67,7 @@ export function useCardMovements(
   const onDragEnd = React.useCallback(
     (ev: React.DragEvent) => {
       setIsDragging(false);
-      moveCard(card, getColumnFromXPos(ev.clientX));
+      // reset z-index
       cardRef.current?.style.removeProperty("z-index");
       const offset = getCardOffset(
         card.position.columnIndex,
@@ -78,6 +75,8 @@ export function useCardMovements(
       );
       cardRef.current?.style.setProperty("left", `${offset.left}px`);
       cardRef.current?.style.setProperty("top", `${offset.top}px`);
+      // update the card position in the game state
+      moveCard(card, getColumnFromXPos(ev.clientX));
     },
     [card, moveCard],
   );
