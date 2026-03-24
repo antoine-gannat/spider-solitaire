@@ -51,7 +51,7 @@ const App: React.FC = () => {
         </div>
       </div>
       <div className={styles.tableau}>
-        {state.tableau.map((column, columnIndex) => (
+        {state.tableau.slice(0, COLUMN_COUNT).map((column, columnIndex) => (
           <div key={columnIndex}>
             {column.map((card, cardIndex) => (
               <Card

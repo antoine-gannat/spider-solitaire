@@ -2,6 +2,7 @@ import {
   COLUMN_COUNT,
   DECK_COUNT,
   RANKS_IN_ORDER,
+  SUIT_COUNT,
 } from "../components/Constant";
 import { getNewGroupIndex } from "../utils/getNewGroupIndex";
 import { ICard, IState, Suit } from "./state";
@@ -67,8 +68,10 @@ class Game {
       this.state.tableau[columnIndex] = column;
     }
 
-    // add one more column for completed sets to be moved to, even though it won't be rendered, to simplify logic
-    this.state.tableau.push([]);
+    // add one extra column per completed set, so that when completed they can be moved there
+    for (let i = 0; i < DECK_COUNT * SUIT_COUNT; i++) {
+      this.state.tableau.push([]);
+    }
 
     this.update();
   }
@@ -166,12 +169,11 @@ class Game {
       column.slice(-RANKS_IN_ORDER.length).forEach((card) => {
         this.moveCard(
           card,
-          /* toColumnIndex */ COLUMN_COUNT, // move to a non-existent column to signify removing from tableau
+          /* toColumnIndex */ COLUMN_COUNT + this.state.completedSets, // move to a non-existent column to signify removing from tableau
           groupIndex,
           /* isUndo */ false,
         );
       });
-      this.state.completedSets++;
     }
   }
 
@@ -298,6 +300,10 @@ class Game {
   }
 
   private update() {
+    // update the completed set count
+    this.state.completedSets = this.state.tableau
+      .slice(COLUMN_COUNT)
+      .filter((column) => column.length > 0).length;
     this.listener?.({ ...this.state });
   }
 
