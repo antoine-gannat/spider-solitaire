@@ -10,6 +10,7 @@ import { hideDraggedElement } from "../utils/hideDraggedElement";
 import { game } from "../logic/game";
 
 const registeredCards: Record<string, React.RefObject<HTMLDivElement>> = {};
+let groupIndexCounter = 0;
 
 export const getCardOffset = (columnIndex: number, cardIndex: number) => {
   return {
@@ -91,8 +92,15 @@ export function useCardMovements(card: ICard, isDraggable: boolean) {
       ref.current?.style.setProperty("left", `${offset.left}px`);
       ref.current?.style.setProperty("top", `${offset.top}px`);
       ref.current?.style.removeProperty("z-index");
-      game.moveCard(card, getColumnFromXPos(ev.clientX));
+
+      game.moveCard(
+        card,
+        getColumnFromXPos(ev.clientX),
+        false,
+        /* groupIndex */ groupIndexCounter,
+      );
     });
+    groupIndexCounter++;
   }, []);
 
   return {

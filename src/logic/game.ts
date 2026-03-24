@@ -11,7 +11,9 @@ type CardMove = {
   type: "move";
   cardId: string;
   fromColumnIndex: number;
+  groupIndex?: number;
 };
+
 type CardUncover = {
   type: "uncover";
   columnIndex: number;
@@ -92,12 +94,15 @@ class Game {
     );
   }
 
-  moveCard(card: ICard, toColumnIndex: number, isUndo = false) {
-    const fromColumnIndex = card.position.columnIndex;
+  moveCard(
+    card: ICard,
+    toColumnIndex: number,
+    isUndo = false,
+    groupIndex: number | undefined = undefined,
+  ) {
     // check if we can do the move.
     // unless we are undoing, then bypass
     if (!isUndo && !this.canMoveCard(card, toColumnIndex)) {
-      console.warn("Invalid move");
       return;
     }
     this.state.tableau[toColumnIndex].push(card);
@@ -105,16 +110,28 @@ class Game {
       columnIndex: toColumnIndex,
       cardIndex: this.state.tableau[toColumnIndex].length - 1,
     };
-    this.state.tableau[fromColumnIndex].pop();
+
+    const fromColumnIndex = card.position.columnIndex;
+    // remove card using its ID
+    const fromColumn = this.state.tableau[fromColumnIndex];
+    const cardIndexInFromColumn = fromColumn.findIndex((c) => c.id === card.id);
+    if (cardIndexInFromColumn === -1) {
+      throw new Error("Card to move not found in from column");
+    }
+    fromColumn.splice(cardIndexInFromColumn, 1);
     // skip recording the move if this move is being made as part of an undo, to avoid infinite loop
     !isUndo &&
-      this.moves.push({ type: "move", fromColumnIndex, cardId: card.id });
+      this.moves.push({
+        type: "move",
+        fromColumnIndex,
+        cardId: card.id,
+        groupIndex,
+      });
 
     this.tryToUncoverCard(fromColumnIndex);
     this.update();
   }
 
-  // TODO: Fix for stack moves
   undoMove() {
     const lastMove = this.moves.pop();
     if (!lastMove) {
@@ -122,11 +139,21 @@ class Game {
       return;
     }
     if (lastMove.type === "move") {
-      const card = this.getCard(lastMove.cardId);
-      if (!card) {
-        throw new Error("Card to undo move not found");
-      }
-      this.moveCard(card, lastMove.fromColumnIndex, /* isUndo */ true);
+      // Get all moves that are part of the same group (i.e. all cards that were moved together in a stack)
+      const movesToUndo: CardMove[] = [
+        lastMove,
+        ...this.getCardsFromMoveGroup(lastMove.groupIndex),
+      ]
+        // Then reverse the moves so that we undo in the correct order
+        .reverse();
+
+      movesToUndo.forEach((move) => {
+        const card = this.getCard(move.cardId);
+        if (!card) {
+          throw new Error("Card to undo move not found");
+        }
+        this.moveCard(card, lastMove.fromColumnIndex, /* isUndo */ true);
+      });
     } else if (lastMove.type === "uncover") {
       const { columnIndex } = lastMove;
       const column = this.state.tableau[columnIndex];
@@ -137,6 +164,25 @@ class Game {
       // In the case of uncovering a card, we want to undo the move that triggered that uncover as well
       this.undoMove();
     }
+  }
+
+  getCardsFromMoveGroup(groupIndex: number | undefined): CardMove[] {
+    if (groupIndex === undefined) {
+      return [];
+    }
+    const moves: CardMove[] = [];
+
+    let move: (CardMove | CardUncover) | undefined;
+    while ((move = this.moves.pop())) {
+      if (move.type === "move" && move.groupIndex === groupIndex) {
+        moves.push(move);
+      } else {
+        // put back the move that is not part of the group we want to undo
+        this.moves.push(move);
+        break;
+      }
+    }
+    return moves;
   }
 
   dealCards() {
@@ -200,6 +246,7 @@ class Game {
   }
 
   private update() {
+    console.log(this.moves);
     this.listener?.({ ...this.state });
   }
 
