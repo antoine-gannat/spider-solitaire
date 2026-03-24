@@ -3,6 +3,7 @@ import {
   DECK_COUNT,
   RANKS_IN_ORDER,
 } from "../components/Constant";
+import { getNewGroupIndex } from "../utils/getNewGroupIndex";
 import { ICard, IState, Suit } from "./state";
 
 type OnUpdateListener = (state: IState) => void;
@@ -19,10 +20,17 @@ type CardUncover = {
   columnIndex: number;
 };
 
+type CardDeal = {
+  type: "deal";
+  columnIndex: number;
+};
+
+type CardMoveRecord = CardMove | CardUncover | CardDeal;
+
 class Game {
   state: IState;
   private listener: OnUpdateListener | null = null;
-  private moves: (CardMove | CardUncover)[] = [];
+  private moves: CardMoveRecord[] = [];
 
   constructor() {
     this.state = {
@@ -58,6 +66,9 @@ class Game {
       column[column.length - 1].visible = true;
       this.state.tableau[columnIndex] = column;
     }
+
+    // add one more column for completed sets to be moved to, even though it won't be rendered, to simplify logic
+    this.state.tableau.push([]);
 
     this.update();
   }
@@ -97,20 +108,14 @@ class Game {
   moveCard(
     card: ICard,
     toColumnIndex: number,
-    isUndo = false,
     groupIndex: number | undefined = undefined,
+    isUndo = false,
   ) {
     // check if we can do the move.
     // unless we are undoing, then bypass
     if (!isUndo && !this.canMoveCard(card, toColumnIndex)) {
       return;
     }
-    this.state.tableau[toColumnIndex].push(card);
-    card.position = {
-      columnIndex: toColumnIndex,
-      cardIndex: this.state.tableau[toColumnIndex].length - 1,
-    };
-
     const fromColumnIndex = card.position.columnIndex;
     // remove card using its ID
     const fromColumn = this.state.tableau[fromColumnIndex];
@@ -119,6 +124,13 @@ class Game {
       throw new Error("Card to move not found in from column");
     }
     fromColumn.splice(cardIndexInFromColumn, 1);
+
+    this.state.tableau[toColumnIndex].push(card);
+    card.position = {
+      columnIndex: toColumnIndex,
+      cardIndex: this.state.tableau[toColumnIndex].length - 1,
+    };
+
     // skip recording the move if this move is being made as part of an undo, to avoid infinite loop
     !isUndo &&
       this.moves.push({
@@ -129,9 +141,42 @@ class Game {
       });
 
     this.tryToUncoverCard(fromColumnIndex);
+    this.checkForCompletedSet(toColumnIndex);
     this.update();
   }
 
+  checkForCompletedSet(columnIndex: number) {
+    const column = this.state.tableau[columnIndex];
+    if (column.length < RANKS_IN_ORDER.length) {
+      return;
+    }
+    const topCards = column.slice(-RANKS_IN_ORDER.length);
+    const isCompleteSet =
+      topCards[0].rank === "K" &&
+      topCards.every((card, index) => {
+        return (
+          card.rank === RANKS_IN_ORDER[RANKS_IN_ORDER.length - 1 - index] &&
+          card.suit === topCards[0].suit &&
+          card.visible
+        );
+      });
+    if (isCompleteSet) {
+      const groupIndex = getNewGroupIndex();
+      // remove the completed set from the tableau
+      column.slice(-RANKS_IN_ORDER.length).forEach((card) => {
+        this.moveCard(
+          card,
+          /* toColumnIndex */ COLUMN_COUNT, // move to a non-existent column to signify removing from tableau
+          groupIndex,
+          /* isUndo */ false,
+        );
+      });
+      this.state.completedSets++;
+    }
+  }
+
+  // Undo the last move. If the last move was moving a stack of cards, will undo the entire stack together
+  // TODO: Implement undo for dealing cards as well
   undoMove() {
     const lastMove = this.moves.pop();
     if (!lastMove) {
@@ -152,7 +197,12 @@ class Game {
         if (!card) {
           throw new Error("Card to undo move not found");
         }
-        this.moveCard(card, lastMove.fromColumnIndex, /* isUndo */ true);
+        this.moveCard(
+          card,
+          /* toColumnIndex */ lastMove.fromColumnIndex,
+          move.groupIndex,
+          /* isUndo */ true,
+        );
       });
     } else if (lastMove.type === "uncover") {
       const { columnIndex } = lastMove;
@@ -166,13 +216,14 @@ class Game {
     }
   }
 
+  // Get all moves that are part of the same group (i.e. all cards that were moved together in a stack)
   getCardsFromMoveGroup(groupIndex: number | undefined): CardMove[] {
     if (groupIndex === undefined) {
       return [];
     }
-    const moves: CardMove[] = [];
 
-    let move: (CardMove | CardUncover) | undefined;
+    const moves: CardMove[] = [];
+    let move: CardMoveRecord | undefined;
     while ((move = this.moves.pop())) {
       if (move.type === "move" && move.groupIndex === groupIndex) {
         moves.push(move);
@@ -185,6 +236,7 @@ class Game {
     return moves;
   }
 
+  // Deal cards from the deck to the tableau
   dealCards() {
     if (this.state.deck.length === 0) {
       console.warn("No more cards to draw");
@@ -246,7 +298,6 @@ class Game {
   }
 
   private update() {
-    console.log(this.moves);
     this.listener?.({ ...this.state });
   }
 

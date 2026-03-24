@@ -8,9 +8,9 @@ import {
 import { getColumnFromXPos } from "../utils/getColumnFromXPos";
 import { hideDraggedElement } from "../utils/hideDraggedElement";
 import { game } from "../logic/game";
+import { getNewGroupIndex } from "../utils/getNewGroupIndex";
 
 const registeredCards: Record<string, React.RefObject<HTMLDivElement>> = {};
-let groupIndexCounter = 0;
 
 export const getCardOffset = (columnIndex: number, cardIndex: number) => {
   return {
@@ -84,6 +84,8 @@ export function useCardMovements(card: ICard, isDraggable: boolean) {
   const onDragEnd = React.useCallback((ev: React.DragEvent) => {
     setIsDragging(false);
 
+    const groupIndex = getNewGroupIndex();
+
     draggedStackRef.current.forEach(({ ref, card }) => {
       const offset = getCardOffset(
         card.position.columnIndex,
@@ -96,11 +98,10 @@ export function useCardMovements(card: ICard, isDraggable: boolean) {
       game.moveCard(
         card,
         getColumnFromXPos(ev.clientX),
-        false,
-        /* groupIndex */ groupIndexCounter,
+        groupIndex,
+        /* isUndo */ false,
       );
     });
-    groupIndexCounter++;
   }, []);
 
   return {
