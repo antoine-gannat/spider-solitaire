@@ -1,7 +1,6 @@
 import React from "react";
 import { ICard } from "../logic/state";
 import {
-  CARD_HEIGHT,
   CARD_HORIZONTAL_OFFSET,
   CARD_VERTICAL_OFFSET,
   CARD_WIDTH,
@@ -54,16 +53,24 @@ export function useCardMovements(card: ICard, isDraggable: boolean) {
       if (!isDragging || ev.clientX === 0 || ev.clientY === 0) {
         return;
       }
+      // get parent
+      const parentRect =
+        cardRef.current?.parentElement?.getBoundingClientRect();
+
+      // calculate the offset of the dragged card relative to the parent element
+      const parentOffsetX = parentRect ? parentRect.left : 0;
+      const parentOffsetY = parentRect ? parentRect.top : 0;
+
       draggedStackRef.current.forEach(({ ref }, index) => {
-        const offsetX = CARD_HORIZONTAL_OFFSET;
+        const offsetX = CARD_HORIZONTAL_OFFSET - CARD_WIDTH / 2;
         const offsetY = index * CARD_VERTICAL_OFFSET;
         ref.current?.style.setProperty(
           "left",
-          `${ev.clientX - CARD_WIDTH / 2 + offsetX}px`,
+          `${ev.clientX + offsetX - parentOffsetX}px`,
         );
         ref.current?.style.setProperty(
           "top",
-          `${ev.clientY - CARD_HEIGHT / 2 + offsetY}px`,
+          `${ev.clientY + offsetY - parentOffsetY}px`,
         );
         // increase the z-index of the dragged card so that it appears above other cards while dragging
         ref.current?.style.setProperty("z-index", (100 + index).toString());

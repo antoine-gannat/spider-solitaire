@@ -139,6 +139,27 @@ class Game {
     }
   }
 
+  dealCards() {
+    if (this.state.deck.length === 0) {
+      console.warn("No more cards to draw");
+      return;
+    }
+    for (let columnIndex = 0; columnIndex < COLUMN_COUNT; columnIndex++) {
+      const card = this.state.deck.pop();
+      if (!card) {
+        console.warn("Ran out of cards while dealing");
+        break;
+      }
+      card.position = {
+        columnIndex,
+        cardIndex: this.state.tableau[columnIndex].length,
+      };
+      card.visible = true;
+      this.state.tableau[columnIndex].push(card);
+    }
+    this.update();
+  }
+
   // Helpers
 
   getCardStackFromCard(card: ICard) {

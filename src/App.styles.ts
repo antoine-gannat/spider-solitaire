@@ -3,6 +3,7 @@ import {
   makeStyles,
   tokens,
 } from "@fluentui/react-components";
+import { CARD_HEIGHT, CARD_WIDTH } from "./components/Constant";
 
 export const useStaticStyles = makeStaticStyles({
   body: {
@@ -26,11 +27,19 @@ export const useStyles = makeStyles({
   deck: {
     padding: "10px",
     position: "relative",
+    cursor: "pointer",
+    width: `${CARD_WIDTH}px`,
+    height: `${CARD_HEIGHT}px`,
   },
   deckCard: {
     position: "absolute",
     top: 0,
     left: 0,
+  },
+  completedSets: {
+    display: "flex",
+    flexDirection: "row",
+    position: "relative",
   },
   tableau: {
     padding: "50px 20px",

@@ -26,20 +26,22 @@ const App: React.FC = () => {
     <div className={styles.app}>
       <div className={styles.topBar}>
         <div>
-          <Button>Deal cards</Button>
           <Button onClick={() => game.undoMove()}>Undo</Button>
         </div>
-        <div className={styles.deck}>
-          {Array.from({ length: state.deck.length / COLUMN_COUNT }, (_, i) => (
-            <img
-              key={i}
-              src={`./cards/back.png`}
-              className={styles.deckCard}
-              style={{ top: i * 10 }}
-            />
-          ))}
-        </div>
-        <div>
+        <div className={styles.completedSets}>
+          <div className={styles.deck} onClick={() => game.dealCards()}>
+            {Array.from(
+              { length: Math.ceil(state.deck.length / COLUMN_COUNT) },
+              (_, i) => (
+                <img
+                  key={i}
+                  src={`./cards/back.png`}
+                  className={styles.deckCard}
+                  style={{ top: i * 10 }}
+                />
+              ),
+            )}
+          </div>
           {Array.from({ length: DECK_COUNT * SUIT_COUNT }, (_, i) => (
             <img
               key={i}
