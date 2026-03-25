@@ -165,11 +165,12 @@ class Game {
       });
     if (isCompleteSet) {
       const groupIndex = getNewGroupIndex();
+      const newColumnIndex = COLUMN_COUNT + this.state.completedSets; // move to the next completed set column
       // remove the completed set from the tableau
       column.slice(-RANKS_IN_ORDER.length).forEach((card) => {
         this.moveCard(
           card,
-          /* toColumnIndex */ COLUMN_COUNT + this.state.completedSets, // move to a non-existent column to signify removing from tableau
+          /* toColumnIndex */ newColumnIndex,
           groupIndex,
           /* isUndo */ false,
         );
