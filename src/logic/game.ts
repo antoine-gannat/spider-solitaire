@@ -28,6 +28,12 @@ type CardDeal = {
 
 type CardMoveRecord = CardMove | CardUncover | CardDeal;
 
+// if true:
+// - deal only cards to half the tableau
+// - make all cards visible
+// - don't shuffle the deck
+const DEBUG_MODE = false;
+
 class Game {
   state: IState;
   private listener: OnUpdateListener | null = null;
@@ -48,8 +54,10 @@ class Game {
   setup() {
     this.state.deck = this.generateDeck();
 
+    const totalColumns = DEBUG_MODE ? COLUMN_COUNT / 2 : COLUMN_COUNT;
+
     // left part of the tableau is 6 columns of 6 cards, right part is 4 columns of 5 cards
-    for (let columnIndex = 0; columnIndex < COLUMN_COUNT; columnIndex++) {
+    for (let columnIndex = 0; columnIndex < totalColumns; columnIndex++) {
       const column: IState["tableau"][number] = [];
       for (
         let cardIndex = 0;
@@ -61,6 +69,9 @@ class Game {
           throw new Error("Deck ran out of cards during setup");
         }
         card.position = { columnIndex, cardIndex };
+        if (DEBUG_MODE) {
+          card.visible = true;
+        }
         column.push(card);
       }
       // set last card in column to visible
@@ -143,8 +154,16 @@ class Game {
         groupIndex,
       });
 
+    // check if we can uncover a card in the from column after moving this card
     this.tryToUncoverCard(fromColumnIndex);
-    this.checkForCompletedSet(toColumnIndex);
+
+    // if the destination column is one of the main tableau columns, check if we completed a set with this move
+    // (if we moved to one of the completed set columns, we know we completed a set, so no need to check again here)
+    if (toColumnIndex < COLUMN_COUNT) {
+      this.checkForCompletedSet(toColumnIndex);
+    }
+
+    // finally, update the state for the UI
     this.update();
   }
 
@@ -165,7 +184,8 @@ class Game {
       });
     if (isCompleteSet) {
       const groupIndex = getNewGroupIndex();
-      const newColumnIndex = COLUMN_COUNT + this.state.completedSets; // move to the next completed set column
+      // move to the next completed set column
+      const newColumnIndex = COLUMN_COUNT + this.state.completedSets;
       // remove the completed set from the tableau
       column.slice(-RANKS_IN_ORDER.length).forEach((card) => {
         this.moveCard(
@@ -216,6 +236,20 @@ class Game {
       column[column.length - 1].visible = false;
       // In the case of uncovering a card, we want to undo the move that triggered that uncover as well
       this.undoMove();
+    } else if (lastMove.type === "deal") {
+      const { columnIndex } = lastMove;
+      const column = this.state.tableau[columnIndex];
+      if (column.length === 0) {
+        throw new Error("No card to undo deal");
+      }
+      const card = column.pop();
+      if (!card) {
+        throw new Error("Card to undo deal not found");
+      }
+      card.position = { columnIndex: -1, cardIndex: -1 };
+      card.visible = false;
+      this.state.deck.push(card);
+      this.update();
     }
   }
 
@@ -257,6 +291,9 @@ class Game {
       };
       card.visible = true;
       this.state.tableau[columnIndex].push(card);
+      this.moves.push({ type: "deal", columnIndex });
+      // check if we completed a set with this deal
+      this.checkForCompletedSet(columnIndex);
     }
     this.update();
   }
@@ -289,6 +326,11 @@ class Game {
           });
         }
       }
+    }
+
+    // skip shuffling
+    if (DEBUG_MODE) {
+      return deck;
     }
 
     // Fisher-Yates shuffle for an unbiased, in-place random order.
