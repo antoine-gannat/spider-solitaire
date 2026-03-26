@@ -26,7 +26,7 @@ const App: React.FC = () => {
     <div className={styles.app}>
       <div className={styles.topBar}>
         <div>
-          <Button onClick={() => game.undoMove()}>Undo</Button>
+          <Button onClick={() => game.undoLastAction()}>Undo</Button>
         </div>
         <div className={styles.completedSets}>
           <div className={styles.deck} onClick={() => game.dealCards()}>

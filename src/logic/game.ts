@@ -47,11 +47,11 @@ class Game {
     };
   }
 
-  listenForUpdates(listener: OnUpdateListener) {
+  public listenForUpdates(listener: OnUpdateListener) {
     this.listener = listener;
   }
 
-  setup() {
+  public setup() {
     this.state.deck = this.generateDeck();
 
     const totalColumns = DEBUG_MODE ? COLUMN_COUNT / 2 : COLUMN_COUNT;
@@ -87,39 +87,7 @@ class Game {
     this.update();
   }
 
-  // Card movements
-
-  tryToUncoverCard(columnIndex: number) {
-    const column = this.state.tableau[columnIndex];
-    if (column.length === 0) {
-      return;
-    }
-    const topCard = column[column.length - 1];
-    if (!topCard.visible) {
-      topCard.visible = true;
-      this.moves.push({ type: "uncover", columnIndex });
-      this.update();
-    }
-  }
-
-  canMoveCard(card: ICard, toColumnIndex: number) {
-    const fromColumn = this.state.tableau[card.position.columnIndex];
-    const toColumn = this.state.tableau[toColumnIndex];
-    if (fromColumn.length === 0) {
-      return false;
-    }
-    if (toColumn.length === 0) {
-      return true;
-    }
-    const destinationTopCard = toColumn[toColumn.length - 1];
-    // can only move if card to move is one rank lower than top card
-    return (
-      RANKS_IN_ORDER.indexOf(card.rank) ===
-      RANKS_IN_ORDER.indexOf(destinationTopCard.rank) - 1
-    );
-  }
-
-  moveCard(
+  public moveCard(
     card: ICard,
     toColumnIndex: number,
     groupIndex: number | undefined = undefined,
@@ -167,40 +135,33 @@ class Game {
     this.update();
   }
 
-  checkForCompletedSet(columnIndex: number) {
-    const column = this.state.tableau[columnIndex];
-    if (column.length < RANKS_IN_ORDER.length) {
+  // Deal cards from the deck to the tableau
+  public dealCards() {
+    if (this.state.deck.length === 0) {
+      console.warn("No more cards to draw");
       return;
     }
-    const topCards = column.slice(-RANKS_IN_ORDER.length);
-    const isCompleteSet =
-      topCards[0].rank === "K" &&
-      topCards.every((card, index) => {
-        return (
-          card.rank === RANKS_IN_ORDER[RANKS_IN_ORDER.length - 1 - index] &&
-          card.suit === topCards[0].suit &&
-          card.visible
-        );
-      });
-    if (isCompleteSet) {
-      const groupIndex = getNewGroupIndex();
-      // move to the next completed set column
-      const newColumnIndex = COLUMN_COUNT + this.state.completedSets;
-      // remove the completed set from the tableau
-      column.slice(-RANKS_IN_ORDER.length).forEach((card) => {
-        this.moveCard(
-          card,
-          /* toColumnIndex */ newColumnIndex,
-          groupIndex,
-          /* isUndo */ false,
-        );
-      });
+    for (let columnIndex = 0; columnIndex < COLUMN_COUNT; columnIndex++) {
+      const card = this.state.deck.pop();
+      if (!card) {
+        console.warn("Ran out of cards while dealing");
+        break;
+      }
+      card.position = {
+        columnIndex,
+        cardIndex: this.state.tableau[columnIndex].length,
+      };
+      card.visible = true;
+      this.state.tableau[columnIndex].push(card);
+      this.moves.push({ type: "deal", columnIndex });
+      // check if we completed a set with this deal
+      this.checkForCompletedSet(columnIndex);
     }
+    this.update();
   }
 
   // Undo the last move. If the last move was moving a stack of cards, will undo the entire stack together
-  // TODO: Implement undo for dealing cards as well
-  undoMove() {
+  public undoLastAction() {
     const lastMove = this.moves.pop();
     if (!lastMove) {
       console.warn("No moves to undo");
@@ -235,9 +196,82 @@ class Game {
       }
       column[column.length - 1].visible = false;
       // In the case of uncovering a card, we want to undo the move that triggered that uncover as well
-      this.undoMove();
+      this.undoLastAction();
     } else if (lastMove.type === "deal") {
-      const { columnIndex } = lastMove;
+      this.undoDeal(lastMove);
+    }
+  }
+
+  public getCardStackFromCard(card: ICard) {
+    const column = this.state.tableau[card.position.columnIndex];
+    return column.slice(card.position.cardIndex).filter((c) => c.visible);
+  }
+
+  private tryToUncoverCard(columnIndex: number) {
+    const column = this.state.tableau[columnIndex];
+    if (column.length === 0) {
+      return;
+    }
+    const topCard = column[column.length - 1];
+    if (!topCard.visible) {
+      topCard.visible = true;
+      this.moves.push({ type: "uncover", columnIndex });
+      this.update();
+    }
+  }
+
+  private checkForCompletedSet(columnIndex: number) {
+    const column = this.state.tableau[columnIndex];
+    if (column.length < RANKS_IN_ORDER.length) {
+      return;
+    }
+    const topCards = column.slice(-RANKS_IN_ORDER.length);
+    const isCompleteSet =
+      topCards[0].rank === "K" &&
+      topCards.every((card, index) => {
+        return (
+          card.rank === RANKS_IN_ORDER[RANKS_IN_ORDER.length - 1 - index] &&
+          card.suit === topCards[0].suit &&
+          card.visible
+        );
+      });
+    if (isCompleteSet) {
+      const groupIndex = getNewGroupIndex();
+      // move to the next completed set column
+      const newColumnIndex = COLUMN_COUNT + this.state.completedSets;
+      // remove the completed set from the tableau
+      column.slice(-RANKS_IN_ORDER.length).forEach((card) => {
+        this.moveCard(
+          card,
+          /* toColumnIndex */ newColumnIndex,
+          groupIndex,
+          /* isUndo */ false,
+        );
+      });
+    }
+  }
+
+  private canMoveCard(card: ICard, toColumnIndex: number) {
+    const fromColumn = this.state.tableau[card.position.columnIndex];
+    const toColumn = this.state.tableau[toColumnIndex];
+    if (fromColumn.length === 0) {
+      return false;
+    }
+    if (toColumn.length === 0) {
+      return true;
+    }
+    const destinationTopCard = toColumn[toColumn.length - 1];
+    // can only move if card to move is one rank lower than top card
+    return (
+      RANKS_IN_ORDER.indexOf(card.rank) ===
+      RANKS_IN_ORDER.indexOf(destinationTopCard.rank) - 1
+    );
+  }
+
+  private undoDeal(lastMove: CardDeal) {
+    const moves = [lastMove, ...this.getAllDealtCardFromMoves()].reverse();
+    moves.forEach((move) => {
+      const { columnIndex } = move;
       const column = this.state.tableau[columnIndex];
       if (column.length === 0) {
         throw new Error("No card to undo deal");
@@ -249,12 +283,12 @@ class Game {
       card.position = { columnIndex: -1, cardIndex: -1 };
       card.visible = false;
       this.state.deck.push(card);
-      this.update();
-    }
+    });
+    this.update();
   }
 
   // Get all moves that are part of the same group (i.e. all cards that were moved together in a stack)
-  getCardsFromMoveGroup(groupIndex: number | undefined): CardMove[] {
+  private getCardsFromMoveGroup(groupIndex: number | undefined): CardMove[] {
     if (groupIndex === undefined) {
       return [];
     }
@@ -273,36 +307,19 @@ class Game {
     return moves;
   }
 
-  // Deal cards from the deck to the tableau
-  dealCards() {
-    if (this.state.deck.length === 0) {
-      console.warn("No more cards to draw");
-      return;
-    }
-    for (let columnIndex = 0; columnIndex < COLUMN_COUNT; columnIndex++) {
-      const card = this.state.deck.pop();
-      if (!card) {
-        console.warn("Ran out of cards while dealing");
+  private getAllDealtCardFromMoves(): CardDeal[] {
+    const moves: CardDeal[] = [];
+    let move: CardMoveRecord | undefined;
+    while ((move = this.moves.pop())) {
+      if (move.type === "deal") {
+        moves.push(move);
+      } else {
+        // put back the move that is not part of the dealt cards
+        this.moves.push(move);
         break;
       }
-      card.position = {
-        columnIndex,
-        cardIndex: this.state.tableau[columnIndex].length,
-      };
-      card.visible = true;
-      this.state.tableau[columnIndex].push(card);
-      this.moves.push({ type: "deal", columnIndex });
-      // check if we completed a set with this deal
-      this.checkForCompletedSet(columnIndex);
     }
-    this.update();
-  }
-
-  // Helpers
-
-  getCardStackFromCard(card: ICard) {
-    const column = this.state.tableau[card.position.columnIndex];
-    return column.slice(card.position.cardIndex).filter((c) => c.visible);
+    return moves;
   }
 
   // Generate two standard decks of cards (104 cards total) for Spider Solitaire
