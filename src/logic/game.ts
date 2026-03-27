@@ -32,7 +32,7 @@ type CardMoveRecord = CardMove | CardUncover | CardDeal;
 // - deal only cards to half the tableau
 // - make all cards visible
 // - don't shuffle the deck
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
 
 class Game {
   state: IState;
