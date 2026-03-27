@@ -25,11 +25,19 @@ const App: React.FC = () => {
   return (
     <div className={styles.app}>
       <div className={styles.topBar}>
-        <div>
-          <Button onClick={() => game.undoLastAction()}>Undo</Button>
-        </div>
+        <Button
+          className={styles.undoButton}
+          onClick={() => game.undoLastAction()}
+          title="Undo last move"
+        >
+          <img src="./undo.png" alt="Undo" />
+        </Button>
         <div className={styles.completedSets}>
-          <div className={styles.deck} onClick={() => game.dealCards()}>
+          <div
+            className={styles.deck}
+            onClick={() => game.dealCards()}
+            title={`Deal new cards, ${state.deck.length} cards remaining`}
+          >
             {Array.from(
               { length: Math.ceil(state.deck.length / COLUMN_COUNT) },
               (_, i) => (
@@ -52,7 +60,11 @@ const App: React.FC = () => {
       </div>
       <div className={styles.tableau}>
         {state.tableau.slice(0, COLUMN_COUNT).map((column, columnIndex) => (
-          <div key={columnIndex}>
+          <div key={columnIndex} className={styles.column}>
+            <img
+              src={`./cards/empty_card.png`}
+              className={styles.emptyColumn}
+            />
             {column.map((card, cardIndex) => (
               <Card
                 key={`${card.name}-${cardIndex}`}

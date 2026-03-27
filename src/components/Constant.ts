@@ -4,7 +4,7 @@ export const CARD_WIDTH = 150;
 // Calculate the card height based on the original aspect ratio
 export const CARD_HEIGHT =
   CARD_WIDTH * (CARD_IMG_ORIGINAL_HEIGHT / CARD_IMG_ORIGINAL_WIDTH);
-export const CARD_VERTICAL_OFFSET = 50;
+export const CARD_VERTICAL_OFFSET = 40;
 export const CARD_HORIZONTAL_OFFSET = 15;
 
 export const EMPTY_IMAGE =

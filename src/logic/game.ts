@@ -32,7 +32,7 @@ type CardMoveRecord = CardMove | CardUncover | CardDeal;
 // - deal only cards to half the tableau
 // - make all cards visible
 // - don't shuffle the deck
-const DEBUG_MODE = false;
+const DEBUG_MODE = true;
 
 class Game {
   state: IState;
@@ -61,7 +61,7 @@ class Game {
       const column: IState["tableau"][number] = [];
       for (
         let cardIndex = 0;
-        cardIndex < (columnIndex < 6 ? 6 : 5);
+        cardIndex < (columnIndex < 4 ? 6 : 5);
         cardIndex++
       ) {
         const card = this.state.deck.pop();

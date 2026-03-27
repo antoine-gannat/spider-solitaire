@@ -13,7 +13,7 @@ type CardProps = {
   isDraggable: boolean;
 };
 
-export function Card({ card, columnIndex, cardIndex, isDraggable }: CardProps) {
+export function Card({ card, cardIndex, isDraggable }: CardProps) {
   const styles = useStyles();
   const { ref, onDrag, onDragEnd, onDragStart } = useCardMovements(
     card,
@@ -28,7 +28,7 @@ export function Card({ card, columnIndex, cardIndex, isDraggable }: CardProps) {
       onDrag={onDrag}
       onDragEnd={onDragEnd}
       className={mergeClasses(styles.card, isDraggable && styles.topCard)}
-      style={getCardOffset(columnIndex, cardIndex)}
+      style={getCardOffset(cardIndex)}
     >
       <img
         className={styles.img}

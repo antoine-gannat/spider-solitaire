@@ -12,10 +12,10 @@ import { getNewGroupIndex } from "../utils/getNewGroupIndex";
 
 const registeredCards: Record<string, React.RefObject<HTMLDivElement>> = {};
 
-export const getCardOffset = (columnIndex: number, cardIndex: number) => {
+export const getCardOffset = (cardIndex: number) => {
   return {
     top: cardIndex * CARD_VERTICAL_OFFSET,
-    left: columnIndex * (CARD_WIDTH + CARD_HORIZONTAL_OFFSET),
+    left: 0,
   };
 };
 
@@ -87,10 +87,7 @@ export function useCardMovements(card: ICard, isDraggable: boolean) {
     const groupIndex = getNewGroupIndex();
 
     draggedStackRef.current.forEach(({ ref, card }) => {
-      const offset = getCardOffset(
-        card.position.columnIndex,
-        card.position.cardIndex,
-      );
+      const offset = getCardOffset(card.position.cardIndex);
       ref.current?.style.setProperty("left", `${offset.left}px`);
       ref.current?.style.setProperty("top", `${offset.top}px`);
       ref.current?.style.removeProperty("z-index");

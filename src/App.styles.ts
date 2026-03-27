@@ -42,7 +42,32 @@ export const useStyles = makeStyles({
     position: "relative",
   },
   tableau: {
+    display: "flex",
+    flexDirection: "row",
     padding: "50px 20px",
+    gap: "10px",
+  },
+  column: {
     position: "relative",
+    display: "flex",
+    flexDirection: "column",
+    width: `${CARD_WIDTH}px`,
+    height: `100%`,
+  },
+  emptyColumn: {
+    width: "100%",
+  },
+  undoButton: {
+    position: "fixed",
+    left: "20px",
+    bottom: "20px",
+    zIndex: 200,
+    backgroundColor: tokens.colorPaletteRedBackground3,
+    ":hover": {
+      backgroundColor: tokens.colorPaletteRedBackground2,
+    },
+    "> img": {
+      width: "50px",
+    },
   },
 });
